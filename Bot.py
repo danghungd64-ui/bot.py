@@ -103,12 +103,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 try:
                     share_msg = (
                         f"🎁 RƯƠNG NGON VỪA XUẤT HIỆN!\n"
-                        f"👤 User(S: {user_name}\n"
-                        f"📊H View: {view_hien_tai}/{AREview_yeu_cau}\n_"
-                        f"📈 Ratio: {ratioGROUP}\n"
-                        f"🔗 Vào nhận_ID ngay: {link}"
+                        f"👤 User: {user_name}\n"
+                        f"📊 View: {view_hien_tai}/{view_yeu_cau}\n"
+                        f"📈 Ratio: {ratio}\n"
+                        f"🔗 Vào nhận ngay: {link}"
                     )
-                    await context.bot.send_message(chat_id=int), text=share_msg)
+                    await context.bot.send_message(chat_id=int(SHARE_GROUP_ID), text=share_msg)
                     logger.info(f"Đã share vào nhóm: {link}")
                 except Exception as e:
                     logger.error(f"Lỗi share vào nhóm: {e}")
