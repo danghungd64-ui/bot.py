@@ -4,8 +4,8 @@ import logging
 from telegram import Update
 from telegram.ext import Application, MessageHandler, filters, ContextTypes
 
-# Lấy token từ biến môi trường Render (KHÔNG viết cứng token vào đây)
-BOT_TOKEN = os.environ.get("8934734495:AAGVXUK0muIIPK2XYJhzxwHJoaZNbysc-UY")
+# ✅ ĐÃ SỬA: Đọc tên biến BOT_TOKEN từ Render (không điền token trực tiếp vào đây)
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
 
 # Chat ID của bạn (đã điền sẵn)
 MY_CHAT_ID = 8852639183
