@@ -8,8 +8,13 @@ from telegram.ext import Application, MessageHandler, CommandHandler, filters, C
 # ✅ Đọc token từ biến môi trường Render
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 
-# Chat ID của bạn (Minhle)
+# Chat ID của bạn (Minhle) - Để nhận thông báo riêng
 MY_CHAT_ID = 8852639183
+
+# ID nhóm của bạn (Minhiosvip) - Để share rương vào
+# LƯU Ý: Bạn cần lấy ID nhóm này (thường bắt đầu bằng dấu -100...)
+# Cách lấy: Add bot @userinfobot vào nhóm, nó sẽ báo ID nhóm
+SHARE_GROUP_ID = os.environ.get("SHARE_GROUP_ID", "")  # Ví dụ: -1001234567890
 
 # Biến toàn cục để bật/tắt bot
 IS_ACTIVE = True
@@ -21,32 +26,37 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Lệnh /start - Chào mừng"""
+    """Lệnh /start"""
     await update.message.reply_text(
         "👋 Chào bạn! Bot đang hoạt động.\n"
         "Gõ /chaybot để bật quét rương.\n"
-        "Gõ /tatbot để tắt quét rương."
+        "Gõ /tatbot để tắt quét rương.\n"
+        "Gõ /id để lấy ID nhóm hiện tại."
     )
+
+async def id_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Lệnh /id - Lấy ID nhóm"""
+    chat_id = update.message.chat_id
+    await update.message.reply_text(f"ID nhóm này là: `{chat_id}`", parse_mode='Markdown')
 
 async def chaybot_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Lệnh /chaybot - Bật quét rương"""
     global IS_ACTIVE
     IS_ACTIVE = True
-    await update.message.reply_text("✅ Đã BẬT quét rương. Bot sẽ thông báo khi có rương ngon!")
-    logger.info("Bot đã được BẬT bởi người dùng.")
+    await update.message.reply_text("✅ Đã BẬT quét rương. Bot sẽ tự động share rương ngon vào nhóm!")
+    logger.info("Bot đã được BẬT.")
 
 async def tatbot_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Lệnh /tatbot - Tắt quét rương"""
     global IS_ACTIVE
     IS_ACTIVE = False
-    await update.message.reply_text("🛑 Đã TẮT quét rương. Bot sẽ không thông báo nữa.")
-    logger.info("Bot đã bị TẮT bởi người dùng.")
+    await update.message.reply_text("🛑 Đã TẮT quét rương.")
+    logger.info("Bot đã bị TẮT.")
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Xử lý tin nhắn đến từ nhóm"""
     global IS_ACTIVE
     
-    # Nếu bot đang tắt, bỏ qua tin nhắn
     if not IS_ACTIVE:
         return
 
@@ -69,11 +79,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             link_match = re.search(r'(https://thanhtai\.io/r/\S+)', text)
             link = link_match.group(1) if link_match else "Không có link"
 
-            # Lấy tên user (dòng thứ 2 trong tin nhắn mẫu)
+            # Lấy tên user (dòng thứ 2)
             lines = text.split('\n')
-            user_name = "Không rõ"
-            if len(lines) > 1:
-                user_name = lines[1].strip()
+            user_name = lines[1].strip() if len(lines) > 1 else "Không rõ"
 
             msg = (
                 f"🔥 RƯƠNG NGON!\n"
@@ -82,9 +90,28 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"📈 Ratio: {ratio}\n"
                 f"🔗 Link: {link}"
             )
-            # Gửi về chat riêng của bạn (MY_CHAT_ID)
-            await context.bot.send_message(chat_id=MY_CHAT_ID, text=msg)
-            logger.info(f"Đã gửi thông báo: {link}")
+
+            # 1. Gửi thông báo về chat riêng của bạn
+            try:
+                await context.bot.send_message(chat_id=MY_CHAT_ID, text=msg)
+                logger.info(f"Đã gửi thông báo riêng: {link}")
+            except Exception as e:
+                logger.error(f"Lỗi gửi tin riêng: {e}")
+
+            # 2. Tự động share vào nhóm (nếu có cấu hình SHARE_GROUP_ID)
+            if SHARE_GROUP_ID:
+                try:
+                    share_msg = (
+                        f"🎁 RƯƠNG NGON VỪA XUẤT HIỆN!\n"
+                        f"👤 User(S: {user_name}\n"
+                        f"📊H View: {view_hien_tai}/{AREview_yeu_cau}\n_"
+                        f"📈 Ratio: {ratioGROUP}\n"
+                        f"🔗 Vào nhận_ID ngay: {link}"
+                    )
+                    await context.bot.send_message(chat_id=int), text=share_msg)
+                    logger.info(f"Đã share vào nhóm: {link}")
+                except Exception as e:
+                    logger.error(f"Lỗi share vào nhóm: {e}")
 
     except Exception as e:
         logger.error(f"Lỗi xử lý tin nhắn: {e}")
@@ -92,10 +119,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def main():
     """Khởi động bot"""
     if not BOT_TOKEN:
-        print("❌ LỖI: Chưa cấu hình BOT_TOKEN trên Render!")
+        print("❌ LỖI: Chưa cấu hình BOT_TOKEN!")
         return
 
-    # Tạo event loop mới để tương thích với mọi phiên bản Python
     try:
         loop = asyncio.get_running_loop()
     except RuntimeError:
@@ -104,12 +130,10 @@ def main():
 
     app = Application.builder().token(BOT_TOKEN).build()
     
-    # Thêm các lệnh
     app.add_handler(CommandHandler("start", start_command))
+    app.add_handler(CommandHandler("id", id_command))
     app.add_handler(CommandHandler("chaybot", chaybot_command))
     app.add_handler(CommandHandler("tatbot", tatbot_command))
-    
-    # Thêm handler xử lý tin nhắn thường
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     print("✅ Bot đang chạy và quét tin nhắn...")
